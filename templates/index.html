@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Creation App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+        }
+        .note {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .search-container {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+        }
+        .search-container input {
+            padding: 8px;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Creation App</h1>
+    
+    <div class="form-container">
+        <h2>Create a New Note</h2>
+        <form action="/create" method="post">
+            <div class="form-group">
+                <textarea name="content" placeholder="Enter your note here..."></textarea>
+            </div>
+            <button type="submit">Save Note</button>
+        </form>
+    </div>
+    
+    <div class="search-container">
+        <h2>Search Notes by Date</h2>
+        <input type="date" id="search-date" value="{{ current_date }}">
+        <button onclick="searchNotes()">Search</button>
+    </div>
+    
+    <div id="notes-container">
+        <h2>Your Notes</h2>
+        {% if notes %}
+            {% for note in notes %}
+                <div class="note">
+                    <div class="note-header">
+                        <span>Date: {{ note.date }}</span>
+                        <span>Time: {{ note.timestamp.split('T')[1].split('.')[0] }}</span>
+                    </div>
+                    <div class="note-content">{{ note.content }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No notes found. Create your first note above!</p>
+        {% endif %}
+    </div>
+    
+    <script>
+        function searchNotes() {
+            const date = document.getElementById('search-date').value;
+            fetch(`/search?date=${date}`)
+                .then(response => response.json())
+                .then(notes => {
+                    const container = document.getElementById('notes-container');
+                    container.innerHTML = '<h2>Search Results</h2>';
+                    
+                    if (notes.length === 0) {
+                        container.innerHTML += '<p>No notes found for this date.</p>';
+                        return;
+                    }
+                    
+                    notes.forEach(note => {
+                        const time = note.timestamp.split('T')[1].split('.')[0];
+                        const noteDiv = document.createElement('div');
+                        noteDiv.className = 'note';
+                        noteDiv.innerHTML = `
+                            <div class="note-header">
+                                <span>Date: ${note.date}</span>
+                                <span>Time: ${time}</span>
+                            </div>
+                            <div class="note-content">${note.content}</div>
+                        `;
+                        container.appendChild(noteDiv);
+                    });
+                })
+                .catch(error => console.error('Error searching notes:', error));
+        }
+    </script>
+</body>
+</html>

@@ -6,37 +6,61 @@ This application allows users to create, view, and search text notes with timest
 
 import os
 import datetime
-import json
 
 class TextApp:
-    def __init__(self, storage_file="notes.json"):
+    def __init__(self, storage_file="notes.txt"):
         """Initialize the text application with a storage file."""
         self.storage_file = storage_file
         self.notes = self._load_notes()
 
     def _load_notes(self):
         """Load notes from the storage file if it exists."""
+        notes = []
         if os.path.exists(self.storage_file):
             try:
                 with open(self.storage_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                print(f"Error reading {self.storage_file}. Starting with empty notes.")
+                    content = f.read()
+                    note_blocks = content.split("===== NOTE START =====")
+                    
+                    for block in note_blocks:
+                        if not block.strip():
+                            continue
+                        
+                        lines = block.strip().split('\n')
+                        if len(lines) >= 3:  # At least timestamp, date, and some content
+                            timestamp = lines[0].strip()
+                            date = lines[1].strip()
+                            note_content = '\n'.join(lines[2:]).strip()
+                            
+                            note = {
+                                "timestamp": timestamp,
+                                "date": date,
+                                "content": note_content
+                            }
+                            notes.append(note)
+            except Exception as e:
+                print(f"Error reading {self.storage_file}: {e}. Starting with empty notes.")
                 return []
-        return []
+        return notes
 
     def _save_notes(self):
         """Save notes to the storage file."""
         with open(self.storage_file, 'w', encoding='utf-8') as f:
-            json.dump(self.notes, f, ensure_ascii=False, indent=2)
+            for note in self.notes:
+                f.write("===== NOTE START =====\n")
+                f.write(f"{note['timestamp']}\n")
+                f.write(f"{note['date']}\n")
+                f.write(f"{note['content']}\n")
+                f.write("===== NOTE END =====\n\n")
 
     def create_note(self, content):
         """Create a new note with the current timestamp."""
         timestamp = datetime.datetime.now().isoformat()
+        date = datetime.datetime.now().strftime("%Y-%m-%d")
         note = {
             "timestamp": timestamp,
             "content": content,
-            "date": datetime.datetime.now().strftime("%Y-%m-%d")
+            "date": date
         }
         self.notes.append(note)
         self._save_notes()

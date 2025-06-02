@@ -6,27 +6,50 @@ This application provides a web interface for creating, viewing, and searching t
 
 import os
 import datetime
-import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 app = Flask(__name__)
-STORAGE_FILE = "notes.json"
+STORAGE_FILE = "notes.txt"
 
 def load_notes():
     """Load notes from the storage file if it exists."""
+    notes = []
     if os.path.exists(STORAGE_FILE):
         try:
             with open(STORAGE_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            print(f"Error reading {STORAGE_FILE}. Starting with empty notes.")
+                content = f.read()
+                note_blocks = content.split("===== NOTE START =====")
+                
+                for block in note_blocks:
+                    if not block.strip():
+                        continue
+                    
+                    lines = block.strip().split('\n')
+                    if len(lines) >= 3:  # At least timestamp, date, and some content
+                        timestamp = lines[0].strip()
+                        date = lines[1].strip()
+                        note_content = '\n'.join(lines[2:]).strip()
+                        
+                        note = {
+                            "timestamp": timestamp,
+                            "date": date,
+                            "content": note_content
+                        }
+                        notes.append(note)
+        except Exception as e:
+            print(f"Error reading {STORAGE_FILE}: {e}. Starting with empty notes.")
             return []
-    return []
+    return notes
 
 def save_notes(notes):
     """Save notes to the storage file."""
     with open(STORAGE_FILE, 'w', encoding='utf-8') as f:
-        json.dump(notes, f, ensure_ascii=False, indent=2)
+        for note in notes:
+            f.write("===== NOTE START =====\n")
+            f.write(f"{note['timestamp']}\n")
+            f.write(f"{note['date']}\n")
+            f.write(f"{note['content']}\n")
+            f.write("===== NOTE END =====\n\n")
 
 @app.route('/')
 def index():
